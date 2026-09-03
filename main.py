@@ -20,7 +20,7 @@ def main(page: ft.Page):
     # visible=False, нативный WebView может не смонтироваться и события
     # on_page_started/on_page_ended никогда не будут вызваны.
     web_view = WebView(
-        url="https://study.miigaik.ru/?groupId=2050",
+        url="https://study.miigaik.ru/?groupId=2050&dateStart=2026-08-31&dateEnd=2026-09-06",
         expand=True,
         on_page_started=lambda e: show_loader(e),
         on_page_ended=lambda e: show_webview(e),
