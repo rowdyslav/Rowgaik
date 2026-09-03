@@ -1,0 +1,13 @@
+[project]
+name = "rowgaik"
+version = "0.1.0"
+description = "Webview flet app for Study Miigaik"
+readme = "README.md"
+authors = [
+    { name = "rowdyslav", email = "rowdyslav@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "flet>=0.86.5",
+    "flet-webview>=0.86.5",
+]
