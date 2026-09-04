@@ -1,6 +1,6 @@
 [project]
 name = "rowgaik"
-version = "0.1.0"
+version = "1.0.1"
 description = "Webview flet app for Study Miigaik"
 readme = "README.md"
 authors = [
@@ -11,3 +11,12 @@ dependencies = [
     "flet>=0.86.5",
     "flet-webview>=0.86.5",
 ]
+
+[tool.flet]
+product = "Rowgaik"
+org = "ru.miigaik"
+bundle_id = "ru.miigaik.rowgaik"
+build_number = 2
+android_adaptive_icon_background = "#1B2430"
+splash_color = "#1B2430"
+splash_dark_color = "#111827"

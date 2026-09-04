@@ -1,9 +1,11 @@
 import flet as ft
-from flet_webview import WebView
+from flet_webview import JavaScriptMode, WebView
 
 def main(page: ft.Page):
+    map_url = "https://dev.kartfak.ru/miigaik_plan/#map=17.5/55.763893/37.66197/122/48&l=2"
     page.title = "Расписание МИИГАиК"
-    page.theme_mode = ft.ThemeMode.DARK
+    page.theme_mode = ft.ThemeMode.LIGHT
+    page.bgcolor = ft.Colors.WHITE
     page.padding = 0
     page.spacing = 0
 
@@ -13,18 +15,35 @@ def main(page: ft.Page):
     progress_indicator = ft.Container(
         content=ft.ProgressRing(),
         expand=True,
-        visible=True  # Изначально виден
+        alignment=ft.Alignment(0, 0),
+        visible=True,  # Изначально виден
+        ignore_interactions=True
     )
+    webview_configured = False
+
+    async def configure_webview(e):
+        nonlocal webview_configured
+        show_loader(e)
+        if webview_configured:
+            return
+
+        webview_configured = True
+        await web_view.set_javascript_mode(JavaScriptMode.UNRESTRICTED)
+        await web_view.enable_zoom()
+        await web_view.load_request(map_url)
 
     # WebView должен оставаться видимым для платформы. Если создать его с
     # visible=False, нативный WebView может не смонтироваться и события
     # on_page_started/on_page_ended никогда не будут вызваны.
     web_view = WebView(
-        url="https://study.miigaik.ru/?groupId=2050&dateStart=2026-08-31&dateEnd=2026-09-06",
+        url="about:blank",
         expand=True,
-        on_page_started=lambda e: show_loader(e),
+        on_page_started=configure_webview,
         on_page_ended=lambda e: show_webview(e),
-        on_web_resource_error=lambda e: show_error(e)  # Ловим ошибки сети
+        on_web_resource_error=lambda e: show_error(e),
+        on_console_message=lambda e: print(
+            f"[JS {e.data}]"  # Ловим ошибки и сообщения Mapbox
+        )
     )
 
     # Функции управления состоянием с выводом логов
@@ -46,12 +65,19 @@ def main(page: ft.Page):
 
     # Используем Stack, чтобы элементы не сдвигали друг друга при изменении видимости
     page.add(
-        ft.Stack(
+        ft.Column(
             controls=[
-                web_view,
-                progress_indicator
+                ft.Container(height=56),
+                ft.Stack(
+                    controls=[
+                        web_view,
+                        progress_indicator
+                    ],
+                    expand=True
+                )
             ],
-            expand=True
+            expand=True,
+            spacing=0
         )
     )
     print("[DEBUG] Элементы добавлены на страницу. Ожидание ответа от WebView...")

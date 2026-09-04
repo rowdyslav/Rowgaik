@@ -1,0 +1,67 @@
+name: Android release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: python -m pip install --upgrade pip && python -m pip install .
+
+      - name: Build APK
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_REF_TYPE: ${{ github.ref_type }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="0.0.0-dev.${GITHUB_RUN_NUMBER}"
+          fi
+
+          flet build apk \
+            --yes \
+            --no-rich-output \
+            --build-version "$version" \
+            --build-number "$GITHUB_RUN_NUMBER"
+
+          apk_path="$(find build/apk -type f -name '*.apk' -print -quit)"
+          if [[ -z "$apk_path" ]]; then
+            echo "APK was not produced"
+            exit 1
+          fi
+
+          mkdir -p release
+          cp "$apk_path" "release/Rowgaik-${GITHUB_REF_NAME}.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rowgaik-${{ github.ref_name }}
+          path: release/*.apk
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/*.apk --generate-notes --title "Rowgaik $GITHUB_REF_NAME"
