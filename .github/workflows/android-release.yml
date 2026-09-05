@@ -111,7 +111,6 @@ jobs:
           fi
 
           mkdir -p release
-          cp "$apk_path" "release/Rowgaik-${GITHUB_REF_NAME}.apk"
           cp "$apk_path" "release/Rowgaik-latest.apk"
 
       - name: Upload APK artifact
@@ -125,4 +124,11 @@ jobs:
         if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/*.apk --generate-notes --title "${GITHUB_REF_NAME#v}"
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release/Rowgaik-latest.apk --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" release/Rowgaik-latest.apk \
+              --generate-notes \
+              --title "${GITHUB_REF_NAME#v}"
+          fi
