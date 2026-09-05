@@ -1,12 +1,12 @@
 # Rowgaik
-Flet Android-приложение для расписания МИИГАиК.
+Flet Android-приложение с картой кампуса МИИГАиК.
 
 ## Скачать
 
-[Скачать последнюю версию](https://github.com/rowdyslav/Rowgaik/releases/latest)
+[Скачать последнюю версию](https://github.com/rowdyslav/Rowgaik/releases/latest/download/Rowgaik-latest.apk)
 
 ## О проекте
 
-Приложение открывает веб-версию расписания в удобном мобильном интерфейсе.
+Приложение открывает интерактивную карту кампуса МИИГАиК в удобном мобильном интерфейсе.
 
 Новые APK автоматически собираются через GitHub Actions и публикуются в разделе [Releases](https://github.com/rowdyslav/Rowgaik/releases).

@@ -52,6 +52,7 @@ jobs:
 
           mkdir -p release
           cp "$apk_path" "release/Rowgaik-${GITHUB_REF_NAME}.apk"
+          cp "$apk_path" "release/Rowgaik-latest.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
