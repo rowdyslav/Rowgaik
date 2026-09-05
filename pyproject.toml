@@ -19,4 +19,4 @@ bundle_id = "ru.miigaik.rowgaik"
 build_number = 2
 android_adaptive_icon_background = "#1B2430"
 splash_color = "#1B2430"
-splash_dark_color = "#111827"
+splash_dark_color = "#FFFFFF"

@@ -87,6 +87,23 @@ jobs:
             --build-version "$version" \
             --build-number "$GITHUB_RUN_NUMBER"
 
+          sed -i \
+            -e 's/Theme.Black.NoTitleBar/Theme.Light.NoTitleBar/g' \
+            -e 's/#222222/#ffffff/g' \
+            build/flutter/android/app/src/main/res/values-night/styles.xml \
+            build/flutter/android/app/src/main/res/values-night-v31/styles.xml
+
+          (
+            cd build/flutter
+            export SERIOUS_PYTHON_SITE_PACKAGES="$GITHUB_WORKSPACE/build/site-packages"
+            flutter build apk \
+              --release \
+              --build-name "$version" \
+              --build-number "$GITHUB_RUN_NUMBER"
+          )
+
+          cp build/flutter/build/app/outputs/flutter-apk/app-release.apk build/apk/rowgaik.apk
+
           apk_path="$(find build/apk -type f -name '*.apk' -print -quit)"
           if [[ -z "$apk_path" ]]; then
             echo "APK was not produced"
@@ -108,4 +125,4 @@ jobs:
         if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/*.apk --generate-notes --title "Rowgaik $GITHUB_REF_NAME"
+        run: gh release create "$GITHUB_REF_NAME" release/*.apk --generate-notes --title "${GITHUB_REF_NAME#v}"
