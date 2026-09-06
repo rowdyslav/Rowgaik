@@ -1,6 +1,6 @@
 [project]
 name = "rowgaik"
-version = "1.0.1"
+version = "1.1.0"
 description = "Webview flet app for Study Miigaik"
 readme = "README.md"
 authors = [
