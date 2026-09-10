@@ -200,7 +200,6 @@ async def main(page: ft.Page):
         )[0]
         if group_id:
             await preferences.set(GROUP_STORAGE_KEY, group_id)
-            switch_tab(TAB_SCHEDULE)
             page.show_dialog(ft.SnackBar(ft.Text(f"Группа {group_id} сохранена")))
 
     def on_nav_change(new_tab):
