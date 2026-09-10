@@ -1,7 +1,7 @@
 [project]
 name = "rowgaik"
-version = "1.1.0"
-description = "Webview flet app for Study Miigaik"
+version = "2.0.0"
+description = "Webview flet app for Miigaik"
 readme = "README.md"
 authors = [
     { name = "rowdyslav", email = "rowdyslav@gmail.com" }
@@ -16,7 +16,6 @@ dependencies = [
 product = "Rowgaik"
 org = "ru.miigaik"
 bundle_id = "ru.miigaik.rowgaik"
-build_number = 2
 android_adaptive_icon_background = "#1B2430"
 splash_color = "#1B2430"
 splash_dark_color = "#FFFFFF"

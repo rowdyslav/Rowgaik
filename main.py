@@ -1,8 +1,12 @@
 import flet as ft
 from flet_webview import JavaScriptMode, WebView
+from urllib.parse import parse_qs, urlsplit
 
 MAP_URL = "https://dev.kartfak.ru/miigaik_plan/#map=17.5/55.763893/37.66197/122/48&l=2"
-SCHEDULE_URL = "https://study.miigaik.ru/?groupId=2050"
+SCHEDULE_URL = "https://study.miigaik.ru/?groupId={}"
+MAP_DOMAIN = "kartfak.ru"
+GROUP_STORAGE_KEY = "schedule_group_id"
+DEFAULT_GROUP_ID = "2050"
 
 TAB_MAP = 0
 TAB_SCHEDULE = 1
@@ -11,9 +15,11 @@ TOP_OFFSET = 56
 
 
 class WebTab:
-    def __init__(self, page: ft.Page, url: str):
+    def __init__(self, page: ft.Page, url: str, on_map_url=None, on_url_change=None):
         self._page = page
         self._url = url
+        self._on_map_url = on_map_url
+        self._on_url_change_callback = on_url_change
         self._configured = False
 
         self._loader = ft.Container(
@@ -29,6 +35,7 @@ class WebTab:
             expand=True,
             on_page_started=self._on_page_started,
             on_page_ended=self._on_page_ended,
+            on_url_change=self._on_url_change,
         )
 
         body_stack = ft.Stack(
@@ -54,6 +61,15 @@ class WebTab:
         self._loader.visible = False
         self._page.update()
 
+    def _on_url_change(self, e):
+        url = e.data
+        if not isinstance(url, str):
+            return
+        if self._on_url_change_callback:
+            self._on_url_change_callback(url)
+        if self._on_map_url and MAP_DOMAIN in url:
+            self._on_map_url(url)
+
     async def _configure(self):
         if self._configured:
             return
@@ -63,14 +79,19 @@ class WebTab:
         await self._webview.load_request(self._url)
 
 
-def build_tab_content(page: ft.Page, url: str):
-    return WebTab(page, url).content
+def build_tab_content(page: ft.Page, url: str, on_map_url=None, on_url_change=None):
+    return WebTab(
+        page,
+        url,
+        on_map_url=on_map_url,
+        on_url_change=on_url_change,
+    ).content
 
 
-def build_navigation_bar(on_change):
-    return ft.NavigationBar(
+def build_navigation_bar(on_change, on_schedule_long_press):
+    navigation_bar = ft.NavigationBar(
         selected_index=TAB_MAP,
-        on_change=on_change,
+        on_change=lambda e: on_change(e.control.selected_index),
         destinations=[
             ft.NavigationBarDestination(
                 icon=ft.Icons.MAP,
@@ -85,8 +106,31 @@ def build_navigation_bar(on_change):
         ],
     )
 
+    return ft.Stack(
+        controls=[
+            navigation_bar,
+            ft.Row(
+                controls=[
+                    ft.GestureDetector(
+                        content=ft.Container(expand=True),
+                        expand=1,
+                        on_tap=lambda e: on_change(TAB_MAP),
+                    ),
+                    ft.GestureDetector(
+                        content=ft.Container(expand=True),
+                        expand=1,
+                        on_tap=lambda e: on_change(TAB_SCHEDULE),
+                        on_long_press=on_schedule_long_press,
+                    ),
+                ],
+                expand=True,
+            ),
+        ],
+        height=80,
+    )
 
-def main(page: ft.Page):
+
+async def main(page: ft.Page):
     page.title = "Rowgaik"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.bgcolor = ft.Colors.WHITE
@@ -94,26 +138,66 @@ def main(page: ft.Page):
     page.spacing = 0
 
     current_tab = TAB_MAP
-    content_area = ft.Container(expand=True)
+    preferences = ft.SharedPreferences()
+    group_id = await preferences.get(GROUP_STORAGE_KEY)
+    group_id = str(group_id or DEFAULT_GROUP_ID)
+    current_schedule_url = SCHEDULE_URL.format(group_id)
+    content_area = ft.Container(
+        expand=True,
+        animate_offset=300,
+        offset=ft.Offset(0, 0),
+    )
+
+    navigation_bar = None
 
     def url_for_tab(tab):
-        return MAP_URL if tab == TAB_MAP else SCHEDULE_URL
+        return MAP_URL if tab == TAB_MAP else SCHEDULE_URL.format(group_id)
 
-    def switch_tab(tab):
+    def handle_schedule_url(url):
+        nonlocal current_schedule_url
+        current_schedule_url = url
+
+    def switch_tab(tab, url=None, animate=False):
         nonlocal current_tab
         current_tab = tab
-        content_area.content = build_tab_content(page, url_for_tab(tab))
+        navigation_bar.controls[0].selected_index = tab
+        if animate:
+            content_area.offset = ft.Offset(-1, 0)
+            page.update()
+        content_area.content = build_tab_content(
+            page,
+            url or url_for_tab(tab),
+            on_map_url=handle_map_url if tab == TAB_SCHEDULE else None,
+            on_url_change=handle_schedule_url if tab == TAB_SCHEDULE else None,
+        )
+        if animate:
+            content_area.offset = ft.Offset(0, 0)
         page.update()
 
-    def on_nav_change(e):
-        new_tab = e.control.selected_index
+    def handle_map_url(url):
+        switch_tab(TAB_MAP, url=url, animate=True)
+
+    async def save_schedule_group(e):
+        nonlocal group_id
+        group_id = parse_qs(urlsplit(current_schedule_url).query).get(
+            "groupId", [None]
+        )[0]
+        if group_id:
+            await preferences.set(GROUP_STORAGE_KEY, group_id)
+
+    def on_nav_change(new_tab):
         if new_tab != current_tab:
             switch_tab(new_tab)
 
-    page.navigation_bar = build_navigation_bar(on_nav_change)
-
+    navigation_bar = build_navigation_bar(on_nav_change, save_schedule_group)
     switch_tab(current_tab)
-    page.add(content_area)
+    page.add(
+        ft.Column(
+            controls=[content_area, navigation_bar],
+            expand=True,
+            spacing=0,
+        )
+    )
 
 
 if __name__ == "__main__":
