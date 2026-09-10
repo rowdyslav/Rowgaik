@@ -116,14 +116,6 @@ def build_tab_content(page: ft.Page, url: str, on_map_url=None, on_url_change=No
 
 
 def build_navigation_bar(on_change, on_schedule_long_press):
-    schedule_icon = ft.GestureDetector(
-        content=ft.Icon(ft.Icons.CALENDAR_MONTH),
-        on_long_press=on_schedule_long_press,
-    )
-    selected_schedule_icon = ft.GestureDetector(
-        content=ft.Icon(ft.Icons.CALENDAR_MONTH),
-        on_long_press=on_schedule_long_press,
-    )
     return ft.NavigationBar(
         selected_index=TAB_MAP,
         on_change=lambda e: on_change(e.control.selected_index),
@@ -134,11 +126,36 @@ def build_navigation_bar(on_change, on_schedule_long_press):
                 label="Карта",
             ),
             ft.NavigationBarDestination(
-                icon=schedule_icon,
-                selected_icon=selected_schedule_icon,
+                icon=ft.Icons.CALENDAR_MONTH,
+                selected_icon=ft.Icons.CALENDAR_MONTH,
                 label="Расписание",
             ),
         ],
+    )
+
+
+def build_schedule_gesture_layer(on_change, on_long_press):
+    return ft.Container(
+        content=ft.Row(
+            controls=[
+                ft.Container(expand=1, ignore_interactions=True),
+                ft.GestureDetector(
+                    content=ft.Container(
+                        expand=True,
+                        bgcolor=ft.Colors.TRANSPARENT,
+                    ),
+                    expand=1,
+                    on_tap=lambda e: on_change(TAB_SCHEDULE),
+                    on_long_press=on_long_press,
+                ),
+            ],
+            expand=True,
+            spacing=0,
+        ),
+        height=80,
+        left=0,
+        right=0,
+        bottom=0,
     )
 
 
@@ -210,6 +227,10 @@ async def main(page: ft.Page):
     page.navigation_bar = navigation_bar
     switch_tab(current_tab)
     page.add(content_area)
+    page.overlay.append(
+        build_schedule_gesture_layer(on_nav_change, save_schedule_group)
+    )
+    page.update()
 
 
 if __name__ == "__main__":
