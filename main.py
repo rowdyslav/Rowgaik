@@ -11,7 +11,8 @@ DEFAULT_GROUP_ID = "2050"
 TAB_MAP = 0
 TAB_SCHEDULE = 1
 
-TOP_OFFSET = 56
+TOP_OFFSET = 0
+NAV_BAR_HEIGHT = 64
 
 
 class WebTab:
@@ -66,6 +67,8 @@ class WebTab:
         self._handle_url(e.data)
 
     def _handle_url(self, url):
+        if hasattr(url, "data"):
+            url = url.data
         if not isinstance(url, str):
             return
         if self._on_url_change_callback:
@@ -95,26 +98,41 @@ def build_tab_content(page: ft.Page, url: str, on_map_url=None, on_url_change=No
 
 
 def build_navigation_bar(on_change, on_schedule_long_press):
-    navigation_bar = ft.NavigationBar(
-        selected_index=TAB_MAP,
-        on_change=lambda e: on_change(e.control.selected_index),
-        destinations=[
-            ft.NavigationBarDestination(
-                icon=ft.Icons.MAP,
-                selected_icon=ft.Icons.MAP,
-                label="Карта",
+    def destination(icon, label, tab, on_long_press=None):
+        return ft.GestureDetector(
+            content=ft.Container(
+                content=ft.Column(
+                    controls=[ft.Icon(icon, size=22), ft.Text(label, size=12)],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=2,
+                ),
+                expand=True,
+                alignment=ft.Alignment(0, 0),
+                border=ft.Border.all(1, ft.Colors.OUTLINE),
+                border_radius=10,
+                padding=4,
             ),
-            ft.NavigationBarDestination(
-                icon=ft.Icons.CALENDAR_MONTH,
-                selected_icon=ft.Icons.CALENDAR_MONTH,
-                label="Расписание",
-            ),
-        ],
-    )
+            expand=True,
+            on_tap=lambda e: on_change(tab),
+            on_long_press=on_long_press,
+        )
 
-    return ft.GestureDetector(
-        content=navigation_bar,
-        on_long_press=on_schedule_long_press,
+    return ft.Container(
+        content=ft.Row(
+            controls=[
+                destination(ft.Icons.MAP, "Карта", TAB_MAP),
+                destination(
+                    ft.Icons.CALENDAR_MONTH,
+                    "Расписание",
+                    TAB_SCHEDULE,
+                    on_schedule_long_press,
+                ),
+            ],
+            spacing=8,
+        ),
+        height=NAV_BAR_HEIGHT,
+        padding=ft.Padding.symmetric(horizontal=12, vertical=4),
+        bgcolor=ft.Colors.WHITE,
     )
 
 
@@ -148,7 +166,6 @@ async def main(page: ft.Page):
     def switch_tab(tab, url=None, animate=False):
         nonlocal current_tab
         current_tab = tab
-        navigation_bar.content.selected_index = tab
         if animate:
             content_area.offset = ft.Offset(-1, 0)
             page.update()
