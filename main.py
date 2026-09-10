@@ -4,15 +4,14 @@ from urllib.parse import parse_qs, urlsplit
 
 MAP_URL = "https://dev.kartfak.ru/miigaik_plan/#map=17.5/55.763893/37.66197/122/48&l=2"
 SCHEDULE_URL = "https://study.miigaik.ru/?groupId={}"
-MAP_DOMAIN = "kartfak.ru"
+MAP_DOMAIN = "map.miigaik.ru"
 GROUP_STORAGE_KEY = "schedule_group_id"
 DEFAULT_GROUP_ID = "2050"
 
 TAB_MAP = 0
 TAB_SCHEDULE = 1
 
-TOP_OFFSET = 0
-NAV_BAR_HEIGHT = 64
+TOP_OFFSET = 56
 
 
 class WebTab:
@@ -59,8 +58,9 @@ class WebTab:
         self._page.update()
         await self._configure()
 
-    def _on_page_ended(self, e):
+    async def _on_page_ended(self, e):
         self._loader.visible = False
+        await self._prepare_map_links()
         self._page.update()
 
     def _on_url_change(self, e):
@@ -73,7 +73,7 @@ class WebTab:
             return
         if self._on_url_change_callback:
             self._on_url_change_callback(url)
-        hostname = urlsplit(url).hostname or ""
+        hostname = (urlsplit(url).hostname or "").lower().rstrip(".")
         if self._on_map_url and (
             hostname == MAP_DOMAIN or hostname.endswith(f".{MAP_DOMAIN}")
         ):
@@ -87,6 +87,24 @@ class WebTab:
         await self._webview.enable_zoom()
         await self._webview.load_request(self._url)
 
+    async def _prepare_map_links(self):
+        await self._webview.run_javascript(
+            """
+            (() => {
+                const prepare = () => {
+                    document.querySelectorAll('a[href*="map.miigaik.ru"]').forEach((link) => {
+                        link.target = '_self';
+                    });
+                };
+                prepare();
+                new MutationObserver(prepare).observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                });
+            })();
+            """
+        )
+
 
 def build_tab_content(page: ft.Page, url: str, on_map_url=None, on_url_change=None):
     return WebTab(
@@ -98,41 +116,29 @@ def build_tab_content(page: ft.Page, url: str, on_map_url=None, on_url_change=No
 
 
 def build_navigation_bar(on_change, on_schedule_long_press):
-    def destination(icon, label, tab, on_long_press=None):
-        return ft.GestureDetector(
-            content=ft.Container(
-                content=ft.Column(
-                    controls=[ft.Icon(icon, size=22), ft.Text(label, size=12)],
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    spacing=2,
-                ),
-                expand=True,
-                alignment=ft.Alignment(0, 0),
-                border=ft.Border.all(1, ft.Colors.OUTLINE),
-                border_radius=10,
-                padding=4,
+    schedule_icon = ft.GestureDetector(
+        content=ft.Icon(ft.Icons.CALENDAR_MONTH),
+        on_long_press=on_schedule_long_press,
+    )
+    selected_schedule_icon = ft.GestureDetector(
+        content=ft.Icon(ft.Icons.CALENDAR_MONTH),
+        on_long_press=on_schedule_long_press,
+    )
+    return ft.NavigationBar(
+        selected_index=TAB_MAP,
+        on_change=lambda e: on_change(e.control.selected_index),
+        destinations=[
+            ft.NavigationBarDestination(
+                icon=ft.Icons.MAP,
+                selected_icon=ft.Icons.MAP,
+                label="Карта",
             ),
-            expand=True,
-            on_tap=lambda e: on_change(tab),
-            on_long_press=on_long_press,
-        )
-
-    return ft.Container(
-        content=ft.Row(
-            controls=[
-                destination(ft.Icons.MAP, "Карта", TAB_MAP),
-                destination(
-                    ft.Icons.CALENDAR_MONTH,
-                    "Расписание",
-                    TAB_SCHEDULE,
-                    on_schedule_long_press,
-                ),
-            ],
-            spacing=8,
-        ),
-        height=NAV_BAR_HEIGHT,
-        padding=ft.Padding.symmetric(horizontal=12, vertical=4),
-        bgcolor=ft.Colors.WHITE,
+            ft.NavigationBarDestination(
+                icon=schedule_icon,
+                selected_icon=selected_schedule_icon,
+                label="Расписание",
+            ),
+        ],
     )
 
 
@@ -166,6 +172,7 @@ async def main(page: ft.Page):
     def switch_tab(tab, url=None, animate=False):
         nonlocal current_tab
         current_tab = tab
+        navigation_bar.selected_index = tab
         if animate:
             content_area.offset = ft.Offset(-1, 0)
             page.update()
@@ -193,6 +200,7 @@ async def main(page: ft.Page):
         )[0]
         if group_id:
             await preferences.set(GROUP_STORAGE_KEY, group_id)
+            switch_tab(TAB_SCHEDULE)
             page.show_dialog(ft.SnackBar(ft.Text(f"Группа {group_id} сохранена")))
 
     def on_nav_change(new_tab):
@@ -200,14 +208,9 @@ async def main(page: ft.Page):
             switch_tab(new_tab)
 
     navigation_bar = build_navigation_bar(on_nav_change, save_schedule_group)
+    page.navigation_bar = navigation_bar
     switch_tab(current_tab)
-    page.add(
-        ft.Column(
-            controls=[content_area, navigation_bar],
-            expand=True,
-            spacing=0,
-        )
-    )
+    page.add(content_area)
 
 
 if __name__ == "__main__":
