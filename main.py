@@ -54,6 +54,7 @@ class WebTab:
 
     async def _on_page_started(self, e):
         self._loader.visible = True
+        self._handle_url(e.data)
         self._page.update()
         await self._configure()
 
@@ -62,12 +63,17 @@ class WebTab:
         self._page.update()
 
     def _on_url_change(self, e):
-        url = e.data
+        self._handle_url(e.data)
+
+    def _handle_url(self, url):
         if not isinstance(url, str):
             return
         if self._on_url_change_callback:
             self._on_url_change_callback(url)
-        if self._on_map_url and MAP_DOMAIN in url:
+        hostname = urlsplit(url).hostname or ""
+        if self._on_map_url and (
+            hostname == MAP_DOMAIN or hostname.endswith(f".{MAP_DOMAIN}")
+        ):
             self._on_map_url(url)
 
     async def _configure(self):
@@ -106,27 +112,9 @@ def build_navigation_bar(on_change, on_schedule_long_press):
         ],
     )
 
-    return ft.Stack(
-        controls=[
-            navigation_bar,
-            ft.Row(
-                controls=[
-                    ft.GestureDetector(
-                        content=ft.Container(expand=True),
-                        expand=1,
-                        on_tap=lambda e: on_change(TAB_MAP),
-                    ),
-                    ft.GestureDetector(
-                        content=ft.Container(expand=True),
-                        expand=1,
-                        on_tap=lambda e: on_change(TAB_SCHEDULE),
-                        on_long_press=on_schedule_long_press,
-                    ),
-                ],
-                expand=True,
-            ),
-        ],
-        height=80,
+    return ft.GestureDetector(
+        content=navigation_bar,
+        on_long_press=on_schedule_long_press,
     )
 
 
@@ -160,7 +148,7 @@ async def main(page: ft.Page):
     def switch_tab(tab, url=None, animate=False):
         nonlocal current_tab
         current_tab = tab
-        navigation_bar.controls[0].selected_index = tab
+        navigation_bar.content.selected_index = tab
         if animate:
             content_area.offset = ft.Offset(-1, 0)
             page.update()
@@ -175,15 +163,20 @@ async def main(page: ft.Page):
         page.update()
 
     def handle_map_url(url):
+        if current_tab != TAB_SCHEDULE:
+            return
         switch_tab(TAB_MAP, url=url, animate=True)
 
     async def save_schedule_group(e):
         nonlocal group_id
+        if current_tab != TAB_SCHEDULE:
+            return
         group_id = parse_qs(urlsplit(current_schedule_url).query).get(
             "groupId", [None]
         )[0]
         if group_id:
             await preferences.set(GROUP_STORAGE_KEY, group_id)
+            page.show_dialog(ft.SnackBar(ft.Text(f"Группа {group_id} сохранена")))
 
     def on_nav_change(new_tab):
         if new_tab != current_tab:
