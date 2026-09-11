@@ -115,7 +115,14 @@ def build_tab_content(page: ft.Page, url: str, on_map_url=None, on_url_change=No
     ).content
 
 
-def build_navigation_bar(on_change, on_schedule_long_press):
+def build_navigation_bar(on_change, on_schedule_long_press, on_press_start):
+    def schedule_icon():
+        return ft.GestureDetector(
+            content=ft.Icon(ft.Icons.CALENDAR_MONTH),
+            on_long_press_start=on_press_start,
+            on_long_press_up=on_schedule_long_press,
+        )
+
     return ft.NavigationBar(
         selected_index=TAB_MAP,
         on_change=lambda e: on_change(e.control.selected_index),
@@ -126,15 +133,15 @@ def build_navigation_bar(on_change, on_schedule_long_press):
                 label="Карта",
             ),
             ft.NavigationBarDestination(
-                icon=ft.Icons.CALENDAR_MONTH,
-                selected_icon=ft.Icons.CALENDAR_MONTH,
+                icon=schedule_icon(),
+                selected_icon=schedule_icon(),
                 label="Расписание",
             ),
         ],
     )
 
 
-def build_schedule_gesture_layer(on_change, on_long_press):
+def build_schedule_gesture_layer(on_change, on_save, on_press_start):
     return ft.Container(
         content=ft.Row(
             controls=[
@@ -142,11 +149,13 @@ def build_schedule_gesture_layer(on_change, on_long_press):
                 ft.GestureDetector(
                     content=ft.Container(
                         expand=True,
-                        bgcolor=ft.Colors.TRANSPARENT,
+                        bgcolor=ft.Colors.WHITE,
+                        opacity=0.01,
                     ),
                     expand=1,
                     on_tap=lambda e: on_change(TAB_SCHEDULE),
-                    on_long_press=on_long_press,
+                    on_long_press_start=on_press_start,
+                    on_long_press_up=on_save,
                 ),
             ],
             expand=True,
@@ -219,16 +228,27 @@ async def main(page: ft.Page):
             await preferences.set(GROUP_STORAGE_KEY, group_id)
             page.show_dialog(ft.SnackBar(ft.Text(f"Группа {group_id} сохранена")))
 
+    def show_save_press(e, preview=False):
+        page.show_dialog(ft.SnackBar(ft.Text("Отпустите, чтобы сохранить группу")))
+
     def on_nav_change(new_tab):
         if new_tab != current_tab:
             switch_tab(new_tab)
 
-    navigation_bar = build_navigation_bar(on_nav_change, save_schedule_group)
+    navigation_bar = build_navigation_bar(
+        on_nav_change,
+        save_schedule_group,
+        show_save_press,
+    )
     page.navigation_bar = navigation_bar
     switch_tab(current_tab)
     page.add(content_area)
     page.overlay.append(
-        build_schedule_gesture_layer(on_nav_change, save_schedule_group)
+        build_schedule_gesture_layer(
+            on_nav_change,
+            save_schedule_group,
+            show_save_press,
+        )
     )
     page.update()
 
