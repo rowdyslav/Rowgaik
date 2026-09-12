@@ -141,33 +141,6 @@ def build_navigation_bar(on_change, on_schedule_long_press, on_press_start):
     )
 
 
-def build_schedule_gesture_layer(on_change, on_save, on_press_start):
-    return ft.Container(
-        content=ft.Row(
-            controls=[
-                ft.Container(expand=1, ignore_interactions=True),
-                ft.GestureDetector(
-                    content=ft.Container(
-                        expand=True,
-                        bgcolor=ft.Colors.WHITE,
-                        opacity=0.01,
-                    ),
-                    expand=1,
-                    on_tap=lambda e: on_change(TAB_SCHEDULE),
-                    on_long_press_start=on_press_start,
-                    on_long_press_up=on_save,
-                ),
-            ],
-            expand=True,
-            spacing=0,
-        ),
-        height=80,
-        left=0,
-        right=0,
-        bottom=0,
-    )
-
-
 async def main(page: ft.Page):
     page.title = "Rowgaik"
     page.theme_mode = ft.ThemeMode.LIGHT
@@ -243,14 +216,6 @@ async def main(page: ft.Page):
     page.navigation_bar = navigation_bar
     switch_tab(current_tab)
     page.add(content_area)
-    page.overlay.append(
-        build_schedule_gesture_layer(
-            on_nav_change,
-            save_schedule_group,
-            show_save_press,
-        )
-    )
-    page.update()
 
 
 if __name__ == "__main__":
