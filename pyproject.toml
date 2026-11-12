@@ -8,8 +8,10 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
-    "flet>=0.86.5",
-    "flet-webview>=0.86.5",
+    # flet 1.1.x pins Flutter 3.47.9 (Dart 3.12.2), but its app template requires
+    # material_ui ^1.6.0 which needs Dart ^3.13.0 — builds are broken upstream.
+    "flet==1.0.5",
+    "flet-webview==1.0.5",
 ]
 
 [tool.flet]
