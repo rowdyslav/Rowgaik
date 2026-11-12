@@ -8,8 +8,8 @@ MAP_DOMAIN = "map.miigaik.ru"
 GROUP_STORAGE_KEY = "schedule_group_id"
 DEFAULT_GROUP_ID = "2050"
 
-TAB_MAP = 0
-TAB_SCHEDULE = 1
+TAB_SCHEDULE = 0
+TAB_MAP = 1
 
 TOP_OFFSET = 56
 
@@ -124,18 +124,18 @@ def build_navigation_bar(on_change, on_schedule_long_press, on_press_start):
         )
 
     return ft.NavigationBar(
-        selected_index=TAB_MAP,
+        selected_index=TAB_SCHEDULE,
         on_change=lambda e: on_change(e.control.selected_index),
         destinations=[
-            ft.NavigationBarDestination(
-                icon=ft.Icons.MAP,
-                selected_icon=ft.Icons.MAP,
-                label="Карта",
-            ),
             ft.NavigationBarDestination(
                 icon=schedule_icon(),
                 selected_icon=schedule_icon(),
                 label="Расписание",
+            ),
+            ft.NavigationBarDestination(
+                icon=ft.Icons.MAP,
+                selected_icon=ft.Icons.MAP,
+                label="Карта",
             ),
         ],
     )
@@ -148,7 +148,7 @@ async def main(page: ft.Page):
     page.padding = 0
     page.spacing = 0
 
-    current_tab = TAB_MAP
+    current_tab = TAB_SCHEDULE
     preferences = ft.SharedPreferences()
     group_id = await preferences.get(GROUP_STORAGE_KEY)
     group_id = str(group_id or DEFAULT_GROUP_ID)
