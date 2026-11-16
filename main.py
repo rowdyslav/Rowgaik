@@ -159,7 +159,7 @@ async def main(page: ft.Page):
         offset=ft.Offset(0, 0),
     )
 
-    navigation_bar = None
+    navigation_bar: ft.NavigationBar
 
     def url_for_tab(tab):
         return MAP_URL if tab == TAB_MAP else SCHEDULE_URL.format(group_id)
